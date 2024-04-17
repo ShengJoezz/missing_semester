@@ -299,4 +299,36 @@ if __name__=='__main__':
 
 # 6.Git与远程仓库(包括Github)的交互
 
-## 1.建立git，并建立仓库(repositories)
+我们这里拿`github`来举例子来说明如何把本地文件上传到远端仓库中。
+
+首先我们应该在`github`上创建属于我们的`repository(repo)`，即点击`new`，接着填写有关的内容，这里需要注意，如果我们选择了需要`readme.md`之后，远端仓库和本地仓库的历史与内容就是不一致的了，因此我们需要采取某些方式来解决：![[git_study30.png|1025]]
+我们这里解释一下`readme.md`以及一系列的问题：
+* github上默认branch是main，windows的git默认的branch是master，因此我在本地上修改以及`commit`之后，实际上是在master上进行的，接着我们push到远程仓库上，会push到master branch上，而不是github dafault的main branch
+* 因此我们需要利用命令把windows中的branch从master改为了main再去push到remote，由于我在github上创建了readme.md文档，这个文档会出现在default的main branch中，但是这个readme.md是在远程仓库中的操作，在本地并没有，导致本地的main和remote的main不一样，因此如果我想正常地pull和push都会报错，我只能去强行合并这两个历史记录。
+解决第一个问题，是利用`git pull origin main --allow-unrelated-histories`,即把`github`中的`origin`的内容都拉取到本地的`main`分支，并且我们后面的那个命令是允许不相干的历史相结合，从而把`readme.md`拉到本地了。
+
+我们具体来说明一下步骤：
+## 1.方法一(先初始化本地仓库再创建远端仓库)
+
+利用`git init`在本地的文件存储的文件夹初始化`git`，我们利用`git remote add (remote_name) <url>`,一般默认远端仓库名称是`origin`,接着`git add filename`以及`git commit`之后，我们这个时候注意一下`git log --all --graph --decorate --oneline`，可以发现这时候`git`的情况是:
+![[Pasted image 20240417152823.png|800]]
+我们需要注意绿色的`main`是本地的`branch`，而`origin/main`是远端仓库的`branch`，我们会发现这时候如果`git pull`会显示`fatal: refusing to merge unrelated histories`,因此我们需要使用`git pull origin main --allow-unrelated-histories`,强行合并之后我们再看`git`的情况![[git_study32.png|850]]
+这个时候我们就可以利用`git push`来拉取内容，利用`git pull`来提交申请。
+
+## 2.方法二(先创建远端仓库再clone一个本地仓库)
+
+这个方法不需要使用`git init`以及`git add`，区别于[[Git_study#1.方法一(本地已经有文件commit了之后)]]，我们首先在`github`的`respositories`创建一个新的内容，输入相应的命令，接着在自己想要的文件夹中,使用`git clone`来把远端的仓库整个`clone`过来，语法为`git clone https://github.com/ShengJoezz/Sparse-Matrix-Compression-Method-Based-on-Cross-Linked-Lists-in-Fortran`，**注意是不需要初始化，也不需要add和commit的**
+![[git_study33.png|925]]
+`git clone`之后形成如此情况，我们注意到会自动形成本地指针`Head`指向本地的`branch`，接着我们可以顺利地`git pull`我们的内容了。
+![[git_study34.png|950]]
+语法为`git push (remote_name)(local_branch)`
+
+### 远端操作
+- `git remote`: 列出远端
+- `git remote add <name> <url>`: 添加一个远端
+- `git push <remote> <local branch>:<remote branch>`: 将对象传送至远端并更新远端引用
+- `git branch --set-upstream-to=<remote>/<remote branch>`: 创建本地和远端分支的关联关系
+- `git fetch`: 从远端获取对象/索引
+- `git pull`: 相当于 `git fetch; git merge`
+- `git clone`: 从远端下载仓库
+
