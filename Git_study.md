@@ -311,7 +311,7 @@ if __name__=='__main__':
 ## 1.方法一(先初始化本地仓库再创建远端仓库)
 
 利用`git init`在本地的文件存储的文件夹初始化`git`，我们利用`git remote add (remote_name) <url>`,一般默认远端仓库名称是`origin`,接着`git add filename`以及`git commit`之后，我们这个时候注意一下`git log --all --graph --decorate --oneline`，可以发现这时候`git`的情况是:
-![[Pasted image 20240417152823.png|800]]
+![[git_study31.png|800]]
 我们需要注意绿色的`main`是本地的`branch`，而`origin/main`是远端仓库的`branch`，我们会发现这时候如果`git pull`会显示`fatal: refusing to merge unrelated histories`,因此我们需要使用`git pull origin main --allow-unrelated-histories`,强行合并之后我们再看`git`的情况![[git_study32.png|850]]
 这个时候我们就可以利用`git push`来拉取内容，利用`git pull`来提交申请。
 
@@ -333,4 +333,324 @@ if __name__=='__main__':
 - `git fetch`: 从远端获取对象/索引
 - `git pull`: 相当于 `git fetch; git merge`
 - `git clone`: 从远端下载仓库
+
+# 7.git的高级操作
+
+## git config
+
+全称应该是`git configuration`,其中configuration应该是配置的意思，因此利用`git config`可以用来显示配置，更改配置，添加配置，也可以把某个命令重命名为一个新的名字。
+
+因此我们说明这几种功能的命令。
+1. **查看配置**
+
+```
+git config --list [--show-origin]
+```
+这个命令会列出所有当前生效的配置及其来源(如global/local/system等)。加上`--show-origin`可以显示每个配置的确切来源。
+
+2. **查看特定配置**
+
+```
+git config [--global|--local|--system] <key>
+```
+使用不同的作用域标志可查看该级别的某个特定配置值。如`git config --global user.name`。
+
+3. **添加配置**
+
+```
+git config [--global|--local|--system] --add <key> <value>
+```
+使用`--add`选项可以为某个key添加一个新值,如果已存在该键,则添加一个新值,而不是覆盖。
+
+4. **修改配置**
+
+```
+git config [--global|--local|--system] <key> <value> 
+```
+直接为某个配置键赋予新值即可修改配置。常用于修改用户名/邮箱等。
+
+5. **移除配置**
+
+```
+git config [--global|--local|--system] --unset <key>
+```
+使用`--unset`选项移除某个配置项。
+
+6. **配置别名**
+
+```
+git config --global alias.<alias-name> '<git-command>'
+```
+可以为常用的Git命令设置一个简短的别名,提高输入效率。如`git config --global alias.st 'status'`。
+
+常用的配置包括:
+
+- `user.name` 和 `user.email` - 设置提交时的用户信息
+- `core.editor` - 设置Git使用的默认文本编辑器
+- `commit.template` - 设置提交消息的模板文件路径  
+- `push.default` - 设置`git push`不加参数时的行为
+- `pull.rebase` - 是否在pull时使用rebase模式
+- `alias.*` - 命令别名
+
+## git stash
+
+`stash`是暂存的意思，`git stash`命令是Git中用于临时存储未完成更改的实用工具。当你需要切换分支或者暂时搁置当前的工作时,可以使用stash来保存目前的工作进度,后续可以在恢复。以下是一些常见的`git stash`用法:
+
+1. **暂存当前工作目录的状态**
+
+```
+git stash
+```
+
+这将当前工作目录中所有未跟踪的文件和已修改的文件存储到一个stash堆栈中,让你的工作目录回到之前的干净状态。(回到提交的最后一次状态）
+
+2. **查看stash列表**
+
+```
+git stash list
+```
+
+显示所有存储在stash中的记录,以便后续选择恢复哪一个。
+
+3. **恢复之前stash的内容**
+
+```
+git stash pop 
+```
+
+从stash堆栈中取出最近的一次stash,并将其内容应用到当前工作目录。同时该stash被永久删除了。
+
+```
+git stash apply stash@{0}
+```
+
+通过指定`stash@{n}`来应用特定的stash记录,但不会从stash列表中删除它。
+
+4. **删除stash记录**
+
+```
+git stash drop stash@{0}
+```
+
+删除指定的stash记录。如果不指定,默认删除最近的stash。
+
+5. **创建stash时添加消息**
+
+```
+git stash save "Stashing while fixing bug #123"
+```
+
+可以给新创建的stash添加一个消息便于标识。
+
+6. **创建stash时只stash某些文件**
+
+```
+git stash push -- path/to/files
+```
+
+默认会暂存整个工作目录,加文件路径参数可以只stash指定文件。
+
+7. **重新应用stash时创建新分支**
+
+```
+git stash branch new-branch-name stash@{0}
+```
+
+这会基于stash记录创建一个新分支,并自动将stash应用到新分支,非常方便。
+
+stash功能使得你可以快速保存当前的工作现场,而无需提交代码。合理利用stash可以最大程度地避免由未完成工作引起的代码混乱。不过请注意,stash只能暂时保存工作目录中的更改,不包括未track的新文件。使用完后记得清理stash堆栈。
+
+## git bisect
+
+在Git版本控制系统中，`bisect` 是一个命令，用于通过二分查找的方式来定位引入错误或回归的特定提交。这个过程被称为“二分搜索”，因为它通过不断将搜索范围分成两半来逐步缩小引入问题的范围。
+
+当你的项目在某个版本之后出现了错误，而你想要找出是哪一个具体的提交导致了这个问题，`bisect` 命令就会非常有用。以下是一些关于 `bispt` 的关键点：
+
+1. **二分查找**：`git bisect` 使用二分查找算法来快速定位引起问题的提交。
+
+2. **标记已知**：你需要告诉Git一个已知的错误提交（bad commit）和至少一个没有错误的提交（good commit）。
+
+3. **逐步缩小**：Git会从好的提交开始，自动检查中间的提交，询问用户这个提交是好的还是坏的。
+
+4. **自动化**：用户可以自动地通过脚本进行二分查找，也可以手动检查每个提交。
+
+5. **结束搜索**：一旦找到引入问题的提交，你可以使用 `git bisect reset` 来退出二分查找状态，回到原来的位置。
+
+6. **报告问题**：找到问题提交后，可以报告bug或进一步调查问题的原因。
+
+使用 `git bisect` 的基本流程如下：
+
+```shell
+git bisect start            # 开始二分查找
+git bisect bad <commit>     # 标记已知的错误提交
+git bisect good <commit>   # 标记一个或多个已知的好的提交
+git bisect run <script>     # 自动运行二分查找，<script> 是测试当前提交是否有问题的脚本
+# 或者
+git bisect checkout          # 手动检查当前提交是否有问题，然后标记为 good 或 bad
+git bisect reset            # 结束二分查找并重置HEAD到开始二分查找前的状态
+```
+
+## `.gitignore`文件
+
+其实就是`git ignore`，也就是说我们有一些文件是自动生成的，是不会用于提交的，因此我们使用这个文件说明哪些文件不需要提交。
+
+`.gitignore`文件是Git中一个非常有用的功能,它允许我们在提交代码时排除掉某些不需要被Git跟踪的文件或目录。正确使用`.gitignore`文件可以确保我们的代码库中只包含必要的源代码和资源文件,避免一些系统文件、缓存文件或者构建产物等无关文件被不小心提交。
+
+以下是`.gitignore`文件的一些常见用法:
+
+1. **忽略指定文件**
+
+在`.gitignore`中直接写入要忽略的文件名,例如:
+
+```
+debug.log
+temp.txt
+*.tmp
+```
+
+2. **忽略指定目录**
+
+如果要忽略整个目录,需要在目录名后加上`/`斜杠,例如:
+
+```
+build/
+dist/
+node_modules/
+```
+
+3. **使用通配符**
+
+`.gitignore`支持glob模式的通配符,例如:
+
+```
+*.log    # 忽略所有.log文件
+logs/*   # 忽略logs目录下所有文件
+!main.log  # ! 号可以对指定模式进行例外处理
+```
+
+4. **忽略不同操作系统的文件**
+
+可以在`.gitignore`中添加不同操作系统下的系统文件,例如:
+
+```
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+```
+
+5. **注释**
+
+`#`号开头的行被视为注释行,便于描述和解释忽略的原因。
+
+6. **全局gitignore**  
+
+可以为当前用户配置一个全局的`.gitignore`文件,在任何本地仓库中都会生效。
+
+```
+git config --global core.excludesfile ~/.gitignore_global
+```
+
+7. **参考gitignore模板**  
+
+各种流行项目或编程语言都有自己的`.gitignore`模板文件,可以去网上参考并复制过来作为基础。比如Node项目可以用[https://github.com/github/gitignore/blob/main/Node.gitignore](https://github.com/github/gitignore/blob/main/Node.gitignore)
+
+合理地使用`.gitignore`可以有效防止一些敏感数据或系统文件被不小心提交到代码库中,使得仓库只保留必要的文件,有利于减小仓库体积、避免冲突等。同时也要注意不可过度使用`.gitignore`来"藏匿"一些关键文件,防止引起版本控制的混乱。
+
+
+# 8.Github的workflow
+
+## 1.先初始化创建新的仓库
+
+在`github`中创建一个`respository`，可能会引入`readme.md`文档，接着利用先`cd`到自己想要的文件夹，再`git clone`，这会创建一个子文件夹，并把所有的内容克隆过来。
+```shell
+git clone https://github.com/your-username/your-repo.git
+```
+注意，利用`clone`命令之后不需要再利用`git remote add`了，他会自动添加。
+
+## 2.正常写文件提交
+
+即正常创建文件并修改，即以下步骤:
+
+```shell
+git add .         # 添加当前目录下所有修改
+git add filename  # 添加指定文件
+```
+
+接着利用:
+```shell
+git commit -m "commit message" # 提交与输入提交信息
+```
+
+这样我们可以利用
+```shell
+git push origin main
+```
+这样我们可以创建了一个主要的分支，这个`main`分支作为我们的稳定版本的提交分支。
+
+## 3.开发流程
+
+提醒一下，在开发之前的习惯是同步一下主线的代码，即：
+
+```shell
+git checkout main
+git pull
+```
+
+### 1.创建新的branch.
+
+我们开发流程的时候，我们需要用新的`branch`来处理新的`feature`，即
+
+```shell
+git checkout main     # 切换到main分支 
+git pull              # 确保获取main上最新代码
+git checkout -b new-feature  # 创建并切换到新分支
+```
+
+### 2.在新的branch上修改文件并提交
+
+```shell
+# 在new-feature分支上正常修改文件
+git add .
+git commit -m "Implement new feature XYZ"
+```
+
+### 3. 推送新分支到远程仓库
+
+```shell
+git push origin new-feature # 注意这里应该是new-feature而不是main
+```
+
+## 4.团队中的审查
+
+在GitHub上可以看到新推送的`new-feature`分支,点击发起Pull Request将其合并到main分支。等待团队审查你的代码修改,如果通过则可以在GitHub上点击确认合并Pull Request到main分支。
+
+这里做一些关于`pull request`和`push origin main`的区别说明：
+
+发起Pull Request(简称PR)确实不是用来直接将代码提交到远程仓库的,而是一个代码审查和合并的过程。
+在GitHub的工作流程中,发起Pull Request通常包含以下几个步骤:
+1. 从主干分支(如main)创建一个新的开发分支,并在该分支上进行功能开发和代码修改。
+2. 使用`git push`命令将你的开发分支推送到远程GitHub仓库。
+3. 在GitHub网站上,你会看到你新推送的分支,这时可以点击"Compare & pull request"发起一个新的Pull Request。
+4. 填写PR的标题和描述,说明这个PR包含了什么功能或修复。
+5. 通常会让项目的维护者或其他开发人员review这个PR中的代码修改。他们可以讨论、提出修改建议。
+6. 进行必要的回复修改和新的推送后,等待维护者批准并将你的PR合并到主干分支中。
+
+所以,Pull Request本身并不是用来推送代码的,而是一个"请求"去合并你的分支代码到主线代码库的过程。它为团队审查、讨论代码提供了一个平台,保证了代码质量。
+使用`git push`命令只是将你分支的最新提交推送到远程,让这个分支与远程保持同步,这是PR被合并所需的前提条件。
+PR被批准合并后,你的功能分支代码才真正被并入了主线代码库。所以发起PR和推送代码是两个不同但又相互关联的步骤。发起PR是GitHub工作流中的一个关键环节,通过它保证了代码审查,提高了代码质量和开发效率。
+
+## 5.删除已合并的本地和远程分支(可选)
+
+```shell
+git checkout main
+git pull   # 更新main分支
+git branch -d new-feature  # 删除本地new-feature分支  
+git push origin --delete new-feature # 删除远程new-feature分支
+```
 
