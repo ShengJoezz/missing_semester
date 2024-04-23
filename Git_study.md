@@ -323,6 +323,8 @@ if __name__=='__main__':
 ![[git_study34.png|950]]
 语法为`git push (remote_name)(local_branch)`
 
+但是我们仍要注意，在使用`git pull`之前，我们需要把相应的内容`git add/commit`，因为`git pull`实质是在对`git`的工作目录进行操作，而非我们的工作目录。
+
 ### 远端操作
 - `git remote`: 列出远端
 - `git remote add <name> <url>`: 添加一个远端
